@@ -1,0 +1,1 @@
+Search.setIndex({titles:["Welcome to ApexQuality&#8217;s documentation!"],envversion:43,objnames:{},objtypes:{},terms:{content:0,modul:0,index:0,search:0,page:0},objects:{},titleterms:{welcom:0,apexqu:0,document:0,indic:0,tabl:0},filenames:["index"]})

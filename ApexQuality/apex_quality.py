@@ -36,6 +36,7 @@ import numpy as np
 import qgis  # @UnresolvedImport
 
 from kmeans_widget import KMeanWidget
+from qgis_spectral_tool import SpectralTool
 
 
 class ApexQuality:
@@ -74,6 +75,7 @@ class ApexQuality:
         self.actions = []
         self.menu = self.tr(u'&Apex Quality Assessment')
 
+        self.spectralTool = SpectralTool(self.iface.mapCanvas())
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -94,7 +96,7 @@ class ApexQuality:
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
         icon_path = ':/plugins/ApexQuality/icon.png'
         self.action1 = QAction(QIcon(icon_path), u"K-Means classification", self.iface.mainWindow())
-        self.action2 = QAction(QIcon(icon_path), u"Action 2", self.iface.mainWindow())
+        self.action2 = QAction(QIcon(icon_path), u"Spectral tool", self.iface.mainWindow())
         self.action3 = QAction(QIcon(icon_path), u"Action 3", self.iface.mainWindow())
         self.actions.append(self.action1)
         self.actions.append(self.action2)
@@ -139,7 +141,8 @@ class ApexQuality:
         c_plot.canvas.draw(); c_plot.show(); c_plot.exec_()
 
     def someMethod2(self):
-        pass
+        self.iface.mapCanvas().setMapTool(self.spectralTool)
+        self.spectralTool.plot = pyPlotWidget()
 
     def someMethod3(self):
         pass
@@ -159,5 +162,7 @@ class ApexQuality:
                 action)
             self.iface.removeToolBarIcon(action)
         # remove the toolbar
+        self.spectralTool.deactivate()
         del self.toolbar1
+
 

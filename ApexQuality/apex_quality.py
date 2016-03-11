@@ -28,6 +28,14 @@ import resources
 # Import the code for the dialog
 from apex_quality_dialog import ApexQualityDialog
 import os.path
+from matplotlib import pyplot as plt
+from spectral_utils import getSubset
+from pyplot_widget import pyPlotWidget
+from .build_spectral.lib import spectral  # @UnresolvedImport
+import numpy as np
+import qgis  # @UnresolvedImport
+
+from kmeans_widget import KMeanWidget
 
 
 class ApexQuality:
@@ -85,7 +93,7 @@ class ApexQuality:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
         icon_path = ':/plugins/ApexQuality/icon.png'
-        self.action1 = QAction(QIcon(icon_path), u"Action 1", self.iface.mainWindow())
+        self.action1 = QAction(QIcon(icon_path), u"K-Means classification", self.iface.mainWindow())
         self.action2 = QAction(QIcon(icon_path), u"Action 2", self.iface.mainWindow())
         self.action3 = QAction(QIcon(icon_path), u"Action 3", self.iface.mainWindow())
         self.actions.append(self.action1)
@@ -105,7 +113,30 @@ class ApexQuality:
         self.toolbar1 = self.iface.addToolBarWidget(self.toolButton)
 
     def someMethod1(self):
-        pass
+        filePath = self.getCurrentImage()
+        subset = getSubset(filePath)
+        if subset is None:
+            return
+        dialog = KMeanWidget()
+        ok = dialog.exec_()
+        if not ok:
+            return
+        if dialog.euclideanRadioButton.isChecked():
+            distance = spectral.L2
+        else:
+            distance = spectral.L1
+        (m, c) = spectral.kmeans(subset, dialog.classSpinBox.value(), dialog.iterationSpinBox.value(), distance = distance)
+
+        c_plot = pyPlotWidget()
+        ax = c_plot.figure.add_subplot(121)
+        ax.hold(1)
+        for i in range(c.shape[0]):
+            ax.plot(c[i], color = plt.cm.gist_ncar(i / float(len(c) - 1)))  # @UndefinedVariable
+        ax.hold(0)
+        uniqu = np.unique(m)
+        ax = c_plot.figure.add_subplot(122)
+        imgplot = ax.imshow(m, cmap = plt.cm.gist_ncar , vmin = np.min(uniqu), vmax = np.max(uniqu))  # @UndefinedVariable
+        c_plot.canvas.draw(); c_plot.show(); c_plot.exec_()
 
     def someMethod2(self):
         pass
@@ -113,6 +144,12 @@ class ApexQuality:
     def someMethod3(self):
         pass
 
+    def getCurrentImage(self):
+        rlayer = qgis.utils.iface.mapCanvas().currentLayer()
+        if rlayer == None:
+            return
+        else:
+            return rlayer.source()
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -124,15 +161,3 @@ class ApexQuality:
         # remove the toolbar
         del self.toolbar1
 
-
-    def run(self):
-        """Run method that performs all the real work"""
-        # show the dialog
-        self.dlg.show()
-        # Run the dialog event loop
-        result = self.dlg.exec_()
-        # See if OK was pressed
-        if result:
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
-            pass

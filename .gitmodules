@@ -1,0 +1,3 @@
+[submodule "ApexQuality/spectral"]
+	path = ApexQuality/spectral
+	url = git@github.com:spectralpython/spectral.git

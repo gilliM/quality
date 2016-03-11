@@ -20,8 +20,8 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
-from PyQt4.QtGui import QAction, QIcon, QToolButton, QMenu
+from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QUrl
+from PyQt4.QtGui import QAction, QIcon, QToolButton, QMenu, QDesktopServices
 # Initialize Qt resources from file resources.py
 import resources
 
@@ -97,13 +97,14 @@ class ApexQuality:
         icon_path = ':/plugins/ApexQuality/icon.png'
         self.action1 = QAction(QIcon(icon_path), u"K-Means classification", self.iface.mainWindow())
         self.action2 = QAction(QIcon(icon_path), u"Spectral tool", self.iface.mainWindow())
-        self.action3 = QAction(QIcon(icon_path), u"Action 3", self.iface.mainWindow())
+        self.action3 = QAction(QIcon(icon_path), u"Help", self.iface.mainWindow())
         self.actions.append(self.action1)
         self.actions.append(self.action2)
         self.actions.append(self.action3)
         self.popupMenu = QMenu(self.iface.mainWindow())
         self.popupMenu.addAction(self.action1)
         self.popupMenu.addAction(self.action2)
+        self.popupMenu.addSeparator()
         self.popupMenu.addAction(self.action3)
         self.action1.triggered.connect(self.someMethod1)
         self.action2.triggered.connect(self.someMethod2)
@@ -145,7 +146,9 @@ class ApexQuality:
         self.spectralTool.plot = pyPlotWidget()
 
     def someMethod3(self):
-        pass
+        path = os.path.dirname(os.path.realpath(__file__))
+        url = QUrl('file://' + path + '/help/build/html/index.html')
+        QDesktopServices.openUrl(url)
 
     def getCurrentImage(self):
         rlayer = qgis.utils.iface.mapCanvas().currentLayer()

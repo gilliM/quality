@@ -129,21 +129,43 @@ class ApexQuality:
         ok = dialog.exec_()
         if not ok:
             return
-        if dialog.euclideanRadioButton.isChecked():
-            distance = spectral.L2
-        else:
-            distance = spectral.L1
-        (m, c) = spectral.kmeans(subset, dialog.classSpinBox.value(), dialog.iterationSpinBox.value(), distance = distance)
+
+        g = mixture.GMM(n_components = dialog.classSpinBox.value())
+        h, w, n_b = subset.shape
+        subset = subset.reshape(-1, n_b)
+
+        pca = TruncatedSVD(n_components = 10)
+        subset = pca.fit_transform(subset)
+        m = g.fit_predict(subset)
+        proba = g.predict_proba(subset)
+        indicator = np.min(proba, axis = 1)
+        indicator = np.reshape(indicator, (h, w))
+        m = np.reshape(m, (h, w))
+        c = pca.inverse_transform(g.means_)
+        c_covar = pca.inverse_transform(g.covars_)
 
         c_plot = pyPlotWidget()
-        ax = c_plot.figure.add_subplot(121)
+        ax = c_plot.figure.add_subplot(321)
         ax.hold(1)
         for i in range(c.shape[0]):
-            ax.plot(c[i], color = plt.cm.gist_ncar(i / float(len(c) - 1)))  # @UndefinedVariable
+            ax.plot(g.means_[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable)
+        ax = c_plot.figure.add_subplot(322)
+        for i in range(c.shape[0]):
+            ax.plot(g.covars_[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
+        ax = c_plot.figure.add_subplot(323)
+        for i in range(c.shape[0]):
+            ax.plot(c[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
+        ax.set_ylim([0, 1])
+        ax = c_plot.figure.add_subplot(324)
+        for i in range(c.shape[0]):
+            ax.plot(c_covar[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
         ax.hold(0)
         uniqu = np.unique(m)
-        ax = c_plot.figure.add_subplot(122)
-        imgplot = ax.imshow(m, cmap = plt.cm.gist_ncar , vmin = np.min(uniqu), vmax = np.max(uniqu))  # @UndefinedVariable
+        ax = c_plot.figure.add_subplot(325)
+        ax.imshow(m, cmap = plt.cm.gist_rainbow , vmin = np.min(uniqu), vmax = np.max(uniqu))  # @UndefinedVariable
+        ax = c_plot.figure.add_subplot(326)
+        imbar = ax.imshow(indicator, cmap = plt.cm.hot)  # @UndefinedVariable
+        c_plot.figure.colorbar(imbar)
         c_plot.canvas.draw(); c_plot.show(); c_plot.exec_()
 
     def someMethod2(self):

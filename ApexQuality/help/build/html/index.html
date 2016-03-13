@@ -8,7 +8,7 @@
     
     <title>Welcome to ApexQuality’s documentation! &mdash; ApexQuality 0.1 documentation</title>
     
-    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     
     <script type="text/javascript">
@@ -43,11 +43,42 @@
             
   <div class="section" id="welcome-to-apexquality-s-documentation">
 <h1>Welcome to ApexQuality&#8217;s documentation!<a class="headerlink" href="#welcome-to-apexquality-s-documentation" title="Permalink to this headline">¶</a></h1>
-<p>Contents:</p>
 <div class="toctree-wrapper compound">
 <ul class="simple">
 </ul>
 </div>
+</div>
+<div class="section" id="unsupervised-classification">
+<h1>Unsupervised classification<a class="headerlink" href="#unsupervised-classification" title="Permalink to this headline">¶</a></h1>
+<p>The current unsupervised classification allow to work on the current extend of the QGIS canvas. The classification is performed on the current selected layer of the layer tree.</p>
+<p>A truncated SVD is apply to reduce to data dimenstionality. A Gaussian mixture model is used as classifier.</p>
+<p>Unconsistencies in the data can be observed trough 2 means:</p>
+<ul class="simple">
+<li>Form of the class</li>
+<li>High variance of a class</li>
+<li>Per-pixel analysis of the distance to the closer class</li>
+</ul>
+<div class="section" id="form-of-the-class">
+<h2>Form of the class<a class="headerlink" href="#form-of-the-class" title="Permalink to this headline">¶</a></h2>
+<p>If a lot of pixel exhibits inconsistency, but are all similar, the problem can be observred directly in the mean of spectra of the class (5th graph)</p>
+</div>
+<div class="section" id="high-variance-of-class">
+<h2>High variance of class<a class="headerlink" href="#high-variance-of-class" title="Permalink to this headline">¶</a></h2>
+<p>The high variance of a class can mean that different landcover are assigned to this class. From some experience of the classifier, weird spectra are often included in mixed classes. The variance can be observed in the 2nd and 4th graph</p>
+</div>
+<div class="section" id="per-pixel-analysis-of-the-distance-to-the-closer-class">
+<h2>Per-pixel analysis of the distance to the closer class<a class="headerlink" href="#per-pixel-analysis-of-the-distance-to-the-closer-class" title="Permalink to this headline">¶</a></h2>
+<p>Each pixel is assigned to the class to which its probability of belonging is the higher. If the highest probability is low, it means that the given pixel is far from every centroid, so far from most of the pixel. It can be considered as an outlier. The highest probability is shown on the 6th graph. Lower is the probability, further the pixel is from any class.</p>
+</div>
+</div>
+<div class="section" id="spectral-tool">
+<h1>Spectral tool<a class="headerlink" href="#spectral-tool" title="Permalink to this headline">¶</a></h1>
+<p>The spectral tool can be used in three modes:</p>
+<ul class="simple">
+<li>click: plot the spectra of the given pixel. A second click add a second spectra to the previous one</li>
+<li>click and drag: reset the plot at each drawing</li>
+<li>click + CTRL (CMD on mac): reset the plot at each drawing</li>
+</ul>
 </div>
 <div class="section" id="indices-and-tables">
 <h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
@@ -67,6 +98,13 @@
   <h3><a href="#">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Welcome to ApexQuality&#8217;s documentation!</a></li>
+<li><a class="reference internal" href="#unsupervised-classification">Unsupervised classification</a><ul>
+<li><a class="reference internal" href="#form-of-the-class">Form of the class</a></li>
+<li><a class="reference internal" href="#high-variance-of-class">High variance of class</a></li>
+<li><a class="reference internal" href="#per-pixel-analysis-of-the-distance-to-the-closer-class">Per-pixel analysis of the distance to the closer class</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#spectral-tool">Spectral tool</a></li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
 </ul>
 
@@ -102,7 +140,7 @@
       </ul>
     </div>
     <div class="footer">
-        &copy; Copyright 2013, RSL.
+        &copy; Copyright 2016, RSL.
       Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
     </div>
   </body>

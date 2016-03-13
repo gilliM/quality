@@ -20,19 +20,19 @@
  ***************************************************************************/
 """
 
-import qgis  # @UnresolvedImport
-from qgis.gui import *
-from qgis.core import *
+from qgis import utils
+from qgis.gui import QgsMapToolEmitPoint
+from qgis.core import QgsPoint, QgsRaster
 from PyQt4.QtCore import Qt, SIGNAL, QSettings
 from PyQt4.QtGui import QApplication
 import numpy as np
 
 s = QSettings()
 
-class SpectralTool(QgsMapToolEmitPoint):  # @UndefinedVariable
+class SpectralTool(QgsMapToolEmitPoint):
     def __init__(self, canvas):
         self.canvas = canvas
-        QgsMapToolEmitPoint.__init__(self, self.canvas)  # @UndefinedVariable
+        QgsMapToolEmitPoint.__init__(self, self.canvas)
         self.reset()
         self.plot = None
 
@@ -41,12 +41,12 @@ class SpectralTool(QgsMapToolEmitPoint):  # @UndefinedVariable
         self.isEmittingPoint = False
 
     def canvasPressEvent(self, e):
-        rlayer = qgis.utils.iface.mapCanvas().currentLayer()
+        rlayer = utils.iface.mapCanvas().currentLayer()
         if rlayer == None:
             return
         point = self.toMapCoordinates(e.pos())
         self.isEmittingPoint = True
-        ident = rlayer.dataProvider().identify(QgsPoint(point), QgsRaster.IdentifyFormatValue)  # @UndefinedVariable
+        ident = rlayer.dataProvider().identify(QgsPoint(point), QgsRaster.IdentifyFormatValue)
         asort_index = np.argsort(ident.results().keys())
         a_values = np.array(ident.results().values())[asort_index]
         print a_values
@@ -68,12 +68,12 @@ class SpectralTool(QgsMapToolEmitPoint):  # @UndefinedVariable
     def canvasMoveEvent(self, e):
         if not self.isEmittingPoint:
             return
-        rlayer = qgis.utils.iface.mapCanvas().currentLayer()
+        rlayer = utils.iface.mapCanvas().currentLayer()
         if rlayer == None:
             return
         point = self.toMapCoordinates(e.pos())
 
-        ident = rlayer.dataProvider().identify(QgsPoint(point), QgsRaster.IdentifyFormatValue)  # @UndefinedVariable
+        ident = rlayer.dataProvider().identify(QgsPoint(point), QgsRaster.IdentifyFormatValue)
         asort_index = np.argsort(ident.results().keys())
         a_values = np.array(ident.results().values())[asort_index]
         self.plot.figure.clf()

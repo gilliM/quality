@@ -29,11 +29,16 @@ import resources
 from apex_quality_dialog import ApexQualityDialog
 import os.path
 from matplotlib import pyplot as plt
+from sklearn.decomposition import TruncatedSVD
+from sklearn import mixture
+import numpy as np
+from qgis import utils as qgis_utils
+
+
 from spectral_utils import getSubset
 from pyplot_widget import pyPlotWidget
-from .build_spectral.lib import spectral  # @UnresolvedImport
-import numpy as np
-import qgis  # @UnresolvedImport
+#  from .build_spectral.lib import spectral
+
 
 from kmeans_widget import KMeanWidget
 from qgis_spectral_tool import SpectralTool
@@ -151,7 +156,7 @@ class ApexQuality:
         QDesktopServices.openUrl(url)
 
     def getCurrentImage(self):
-        rlayer = qgis.utils.iface.mapCanvas().currentLayer()
+        rlayer = qgis_utils.iface.mapCanvas().currentLayer()
         if rlayer == None:
             return
         else:

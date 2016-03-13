@@ -6,7 +6,6 @@ Created on Mar 13, 2016
 
 import numpy as np
 
-
 def compute_stats_per_class(vector_image):
     mins = np.min(vector_image, axis = 0)
     means = np.mean(vector_image, axis = 0)

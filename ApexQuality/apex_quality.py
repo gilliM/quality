@@ -32,6 +32,7 @@ from sklearn import mixture
 import numpy as np
 from qgis import utils as qgis_utils
 from qgis import core as qgis_core
+from qgis import gui as qgis_gui
 from osgeo import gdal
 from matplotlib.backends.backend_pdf import PdfPages
 from pandas.tools.plotting import table
@@ -40,7 +41,7 @@ from pandas import DataFrame
 from spectral_utils import getSubset
 from pyplot_widget import pyPlotWidget
 import customization
-#  from .build_spectral.lib import spectral
+from .build_spectral.lib import spectral  # @UnresolvedImport
 
 
 from kmeans_widget import KMeanWidget
@@ -51,13 +52,7 @@ class ApexQuality:
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
-        """Constructor.
-
-        :param iface: An interface instance that will be passed to this class
-            which provides the hook by which you can manipulate the QGIS
-            application at run time.
-        :type iface: QgsInterface
-        """
+        """Constructor."""
         # Save reference to the QGIS interface
         self.iface = iface
         # initialize plugin directory
@@ -81,6 +76,7 @@ class ApexQuality:
         self.menu = self.tr(u'&Apex Quality Assessment')
 
         self.spectralTool = SpectralTool(self.iface.mapCanvas())
+        self.path = os.path.dirname(os.path.realpath(__file__))
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -122,28 +118,64 @@ class ApexQuality:
         self.toolbar1 = self.iface.addToolBarWidget(self.toolButton)
 
     def someMethod1(self):
-        path = os.path.dirname(os.path.realpath(__file__))
-        filePath = self.getCurrentImage()
-        subset, xMin, yMax = getSubset(filePath)
-        if subset is None:
-            return
         dialog = KMeanWidget()
         ok = dialog.exec_()
         if not ok:
             return
 
-        g = mixture.GMM(n_components = dialog.classSpinBox.value())
-        h, w, n_b = subset.shape
-        subset = subset.reshape(-1, n_b)
-        pca = TruncatedSVD(n_components = dialog.nCompSvdSpinBox.value())
-        subset_cp = pca.fit_transform(subset)
-        m = g.fit_predict(subset_cp)
-        proba = g.predict_proba(subset_cp)
-        indicator = np.min(proba, axis = 1)
-        indicator = np.reshape(indicator, (h, w))
-        m = np.reshape(m, (h, w))
-        c = pca.inverse_transform(g.means_)
-        c_covar = pca.inverse_transform(g.covars_)
+        filePath = self.getCurrentImage()
+        if filePath is None:
+            qgis_utils.iface.messageBar().pushMessage("Error",
+                "No Raster selected", level = qgis_gui.QgsMessageBar.CRITICAL, duration = 5)
+            return
+
+        if dialog.restrictedRB.isChecked():
+            data, xMin, yMax = getSubset(filePath)
+            if data is None:
+                qgis_utils.iface.messageBar().pushMessage("Error",
+                    "Problem of extend", level = qgis_gui.QgsMessageBar.CRITICAL, duration = 5)
+                return
+            g = mixture.GMM(n_components = dialog.classSpinBox.value())
+            h, w, n_b = data.shape
+            data = data.reshape(-1, n_b)
+            pca = TruncatedSVD(n_components = dialog.nCompSvdSpinBox.value())
+            data_cp = pca.fit_transform(data)
+            m = g.fit_predict(data_cp)
+            indicator = np.max(g.predict_proba(data_cp), axis = 1)
+            indicator = np.reshape(indicator, (h, w))
+            m = np.reshape(m, (h, w))
+            c = pca.inverse_transform(g.means_)
+            c_covar = pca.inverse_transform(g.covars_)
+
+        else:
+            img = spectral.open_image(filePath.replace('.bsq', '.hdr'))
+            data = img.load()
+            xMin = 0; yMax = 0
+
+            g = mixture.GMM(n_components = dialog.classSpinBox.value())
+            h, w, n_b = data.shape
+            data = data.reshape(-1, n_b)
+            subset = data[np.random.choice(data.shape[0], 100000)]
+            print 0
+            print 0
+            pca = TruncatedSVD(n_components = dialog.nCompSvdSpinBox.value())
+            pca.fit(subset)
+            print 1
+            print 1
+            subset_pc = pca.transform(subset)
+            data_pc = pca.transform(data)
+            print 2
+            print 2
+            g.fit(subset_pc)
+            m = g.predict(data_pc)
+            indicator = np.max(g.predict_proba(data_pc), axis = 1)
+            indicator = np.reshape(indicator, (h, w))
+            m = np.reshape(m, (h, w))
+            c = pca.inverse_transform(g.means_)
+            c_covar = pca.inverse_transform(g.covars_)
+
+        print 3
+        print 4
 
         if dialog.pyplotCB.isChecked():
             c_plot = pyPlotWidget()
@@ -178,15 +210,21 @@ class ApexQuality:
             r_save = np.array(m, dtype = np.uint8)
             r_save = np.reshape(r_save, (r_save.shape[0], r_save.shape[1], 1))
 
-            self.WriteGeotiffNBand(r_save, path + '/temp/test.tiff', gdal.GDT_Byte, geoTransform, dataset1.GetProjection())
-
-            fileInfo = QFileInfo(path + '/temp/test.tiff')
+            self.WriteGeotiffNBand(r_save, self.path + '/temp/temp.tiff', gdal.GDT_Byte, geoTransform, dataset1.GetProjection())
+            fileInfo = QFileInfo(self.path + '/temp/test.tiff')
             baseName = fileInfo.baseName()
-            rlayer = qgis_core.QgsRasterLayer(path + '/temp/test.tiff', baseName)
+            rlayer = qgis_core.QgsRasterLayer(self.path + '/temp/temp.tiff', baseName)
+            qgis_core.QgsMapLayerRegistry.instance().addMapLayer(rlayer)
+
+            r_save = np.array(indicator, dtype = np.float32)
+            self.WriteGeotiffNBand(r_save, self.path + '/temp/temp_indicator.tiff', gdal.GDT_Float32, geoTransform, dataset1.GetProjection())
+            fileInfo = QFileInfo(self.path + '/temp/test.tiff')
+            baseName = fileInfo.baseName()
+            rlayer = qgis_core.QgsRasterLayer(self.path + '/temp/temp_indicator.tiff', baseName)
             qgis_core.QgsMapLayerRegistry.instance().addMapLayer(rlayer)
 
         if dialog.pdfCB.isChecked():
-            outputFile = path + '/temp/test.pdf'
+            outputFile = self.path + '/temp/test.pdf'
             with PdfPages(outputFile) as pdf:
                 c_plot = pyPlotWidget()
                 ax = c_plot.figure.add_subplot(221)
@@ -235,15 +273,15 @@ class ApexQuality:
                 t_n = int(np.ceil(n_b / float(nn)))
                 for i in range(nn):
                     c_plot = pyPlotWidget()
-                    sub = subset[:, (i * t_n):np.min((((i + 1) * t_n), n_b))]
+                    sub = data[:, (i * t_n):np.min((((i + 1) * t_n), n_b))]
                     for j, class_i in enumerate(range(np.min(uniqu), np.max(uniqu) + 1)):
                         print i, j
                         ax = c_plot.figure.add_subplot(1, np.max(uniqu) + 1, class_i + 1)
                         bool_i = class_list[j]
-                        subset_class = sub[bool_i, :]
+                        data_class = sub[bool_i, :]
                         ax.set_title('Class %s' % class_i)
                         ax.axis('off')
-                        results, headers = customization.compute_stats_per_class(subset_class)
+                        results, headers = customization.compute_stats_per_class(data_class)
                         matrix = np.transpose(np.array(results))
                         df = DataFrame(matrix, columns = headers, dtype = np.float32)
                         table(ax, df, rowLabels = range((i * t_n) + 1, np.min((((i + 1) * t_n), n_b)) + 1), loc = 'upper right', colWidths = [1.0 / matrix.shape[1]] * matrix.shape[1])

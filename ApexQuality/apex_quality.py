@@ -20,19 +20,19 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QUrl
-from PyQt4.QtGui import QAction, QIcon, QToolButton, QMenu, QDesktopServices
+from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QUrl, QFileInfo, Qt
+from PyQt4.QtGui import QAction, QIcon, QToolButton, QMenu, QDesktopServices, QKeySequence
 # Initialize Qt resources from file resources.py
 import resources
 
-# Import the code for the dialog
-from apex_quality_dialog import ApexQualityDialog
 import os.path
 from matplotlib import pyplot as plt
 from sklearn.decomposition import TruncatedSVD
 from sklearn import mixture
 import numpy as np
 from qgis import utils as qgis_utils
+from qgis import core as qgis_core
+from osgeo import gdal
 
 
 from spectral_utils import getSubset
@@ -73,9 +73,6 @@ class ApexQuality:
             if qVersion() > '4.3.3':
                 QCoreApplication.installTranslator(self.translator)
 
-        # Create the dialog (after translation) and keep reference
-        self.dlg = ApexQualityDialog()
-
         # Declare instance attributes
         self.actions = []
         self.menu = self.tr(u'&Apex Quality Assessment')
@@ -103,6 +100,7 @@ class ApexQuality:
         self.action1 = QAction(QIcon(icon_path), u"K-Means classification", self.iface.mainWindow())
         self.action2 = QAction(QIcon(icon_path), u"Spectral tool", self.iface.mainWindow())
         self.action3 = QAction(QIcon(icon_path), u"Help", self.iface.mainWindow())
+        self.action1.setShortcut(QKeySequence(Qt.SHIFT + Qt.CTRL + Qt.Key_Y))
         self.actions.append(self.action1)
         self.actions.append(self.action2)
         self.actions.append(self.action3)
@@ -122,7 +120,8 @@ class ApexQuality:
 
     def someMethod1(self):
         filePath = self.getCurrentImage()
-        subset = getSubset(filePath)
+        print filePath
+        subset, xMin, yMax = getSubset(filePath)
         if subset is None:
             return
         dialog = KMeanWidget()
@@ -144,29 +143,45 @@ class ApexQuality:
         c = pca.inverse_transform(g.means_)
         c_covar = pca.inverse_transform(g.covars_)
 
-        c_plot = pyPlotWidget()
-        ax = c_plot.figure.add_subplot(321)
-        ax.hold(1)
-        for i in range(c.shape[0]):
-            ax.plot(g.means_[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable)
-        ax = c_plot.figure.add_subplot(322)
-        for i in range(c.shape[0]):
-            ax.plot(g.covars_[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
-        ax = c_plot.figure.add_subplot(323)
-        for i in range(c.shape[0]):
-            ax.plot(c[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
-        ax.set_ylim([0, 1])
-        ax = c_plot.figure.add_subplot(324)
-        for i in range(c.shape[0]):
-            ax.plot(c_covar[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
-        ax.hold(0)
-        uniqu = np.unique(m)
-        ax = c_plot.figure.add_subplot(325)
-        ax.imshow(m, cmap = plt.cm.gist_rainbow , vmin = np.min(uniqu), vmax = np.max(uniqu))  # @UndefinedVariable
-        ax = c_plot.figure.add_subplot(326)
-        imbar = ax.imshow(indicator, cmap = plt.cm.hot)  # @UndefinedVariable
-        c_plot.figure.colorbar(imbar)
-        c_plot.canvas.draw(); c_plot.show(); c_plot.exec_()
+        if dialog.pyplotCB.isChecked():
+            c_plot = pyPlotWidget()
+            ax = c_plot.figure.add_subplot(321)
+            ax.hold(1)
+            for i in range(c.shape[0]):
+                ax.plot(g.means_[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable)
+            ax = c_plot.figure.add_subplot(322)
+            for i in range(c.shape[0]):
+                ax.plot(g.covars_[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
+            ax = c_plot.figure.add_subplot(323)
+            for i in range(c.shape[0]):
+                ax.plot(c[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
+            ax.set_ylim([0, 1])
+            ax = c_plot.figure.add_subplot(324)
+            for i in range(c.shape[0]):
+                ax.plot(c_covar[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
+            ax.hold(0)
+            uniqu = np.unique(m)
+            ax = c_plot.figure.add_subplot(325)
+            ax.imshow(m, cmap = plt.cm.gist_rainbow , vmin = np.min(uniqu), vmax = np.max(uniqu))  # @UndefinedVariable
+            ax = c_plot.figure.add_subplot(326)
+            imbar = ax.imshow(indicator, cmap = plt.cm.hot)  # @UndefinedVariable
+            c_plot.figure.colorbar(imbar)
+            c_plot.canvas.draw(); c_plot.show(); c_plot.exec_()
+
+        if dialog.geotiffCB.isChecked():
+            dataset1 = gdal.Open(filePath)
+            geoTransform = list(dataset1.GetGeoTransform())
+            geoTransform[0] += (xMin * geoTransform[1])
+            geoTransform[3] += (yMax * geoTransform[5])
+            r_save = np.array(m, dtype = np.uint8)
+            r_save = np.reshape(r_save, (r_save.shape[0], r_save.shape[1], 1))
+            path = os.path.dirname(os.path.realpath(__file__))
+            self.WriteGeotiffNBand(r_save, path + '/temp/test.tiff', gdal.GDT_Byte, geoTransform, dataset1.GetProjection())
+
+            fileInfo = QFileInfo(path + '/temp/test.tiff')
+            baseName = fileInfo.baseName()
+            rlayer = qgis_core.QgsRasterLayer(path + '/temp/test.tiff', baseName)
+            qgis_core.QgsMapLayerRegistry.instance().addMapLayer(rlayer)
 
     def someMethod2(self):
         self.iface.mapCanvas().setMapTool(self.spectralTool)
@@ -195,4 +210,14 @@ class ApexQuality:
         self.spectralTool.deactivate()
         del self.toolbar1
 
-
+    def WriteGeotiffNBand(self, raster, filepath, dtype, vectReference, proj):
+        nrows, ncols, n_b = np.shape(raster)
+        driver = gdal.GetDriverByName("GTiff")
+        dst_ds = driver.Create(filepath, ncols, nrows, n_b, dtype, ['COMPRESS=LZW'])
+        dst_ds.SetProjection(proj)
+        dst_ds.SetGeoTransform(vectReference)
+        for i in range(n_b):
+            R = np.array(raster[:, :, i], dtype = np.float32)
+            dst_ds.GetRasterBand(i + 1).WriteArray(R)  # Red
+            dst_ds.GetRasterBand(i + 1).SetNoDataValue(-1)
+        dst_ds = None

@@ -7,7 +7,7 @@ Created on Mar 11, 2016
 
 import spectral
 import gdal
-import qgis  # @UnresolvedImport
+from qgis import utils as qgis_utils
 from PyQt4.QtGui import QMessageBox
 
 def world2Pixel(geoMatrix, x, y):
@@ -23,7 +23,7 @@ def world2Pixel(geoMatrix, x, y):
 
 def getSubset(filePath, extend = None):
     if extend is None:
-        iface = qgis.utils.iface
+        iface = qgis_utils.iface
         e = iface.mapCanvas().extent()
         xMax = e.xMaximum()
         yMax = e.yMaximum()
@@ -46,8 +46,7 @@ def getSubset(filePath, extend = None):
         return None
     if '.bsq' in filePath:
         f = filePath.replace('.bsq', '.hdr')
-        print([maxImage[1], minImage[1]], [minImage[0], maxImage[0]])
-        return spectral.open_image(f).read_subregion([maxImage[1], minImage[1]], [minImage[0], maxImage[0]])
+        return spectral.open_image(f).read_subregion([maxImage[1], minImage[1]], [minImage[0], maxImage[0]]), minImage[0], maxImage[1]
     else:
         if srcImage.RasterCount == 1:
             return srcImage.GetRasterBand(1).ReadAsArray()[maxImage[1] : minImage[1], minImage[0]: maxImage[0]]

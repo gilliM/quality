@@ -64,3 +64,4 @@ target/
 # Other
 ApexQuality/spectral/
 ApexQuality/temp
+*DS_Store

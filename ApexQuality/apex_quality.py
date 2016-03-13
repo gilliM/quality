@@ -33,6 +33,7 @@ import numpy as np
 from qgis import utils as qgis_utils
 from qgis import core as qgis_core
 from osgeo import gdal
+from matplotlib.backends.backend_pdf import PdfPages
 
 
 from spectral_utils import getSubset
@@ -119,6 +120,7 @@ class ApexQuality:
         self.toolbar1 = self.iface.addToolBarWidget(self.toolButton)
 
     def someMethod1(self):
+        path = os.path.dirname(os.path.realpath(__file__))
         filePath = self.getCurrentImage()
         print filePath
         subset, xMin, yMax = getSubset(filePath)
@@ -175,13 +177,44 @@ class ApexQuality:
             geoTransform[3] += (yMax * geoTransform[5])
             r_save = np.array(m, dtype = np.uint8)
             r_save = np.reshape(r_save, (r_save.shape[0], r_save.shape[1], 1))
-            path = os.path.dirname(os.path.realpath(__file__))
+
             self.WriteGeotiffNBand(r_save, path + '/temp/test.tiff', gdal.GDT_Byte, geoTransform, dataset1.GetProjection())
 
             fileInfo = QFileInfo(path + '/temp/test.tiff')
             baseName = fileInfo.baseName()
             rlayer = qgis_core.QgsRasterLayer(path + '/temp/test.tiff', baseName)
             qgis_core.QgsMapLayerRegistry.instance().addMapLayer(rlayer)
+
+        if dialog.pdfCB.isChecked():
+            outputFile = path + '/temp/test.pdf'
+            with PdfPages(outputFile) as pdf:
+                c_plot = pyPlotWidget()
+                ax = c_plot.figure.add_subplot(321)
+                ax.hold(1)
+                for i in range(c.shape[0]):
+                    ax.plot(g.means_[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable)
+                ax = c_plot.figure.add_subplot(322)
+                for i in range(c.shape[0]):
+                    ax.plot(g.covars_[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
+                ax = c_plot.figure.add_subplot(323)
+                for i in range(c.shape[0]):
+                    ax.plot(c[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
+                ax.set_ylim([0, 1])
+                ax = c_plot.figure.add_subplot(324)
+                for i in range(c.shape[0]):
+                    ax.plot(c_covar[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
+                ax.hold(0)
+                uniqu = np.unique(m)
+                ax = c_plot.figure.add_subplot(325)
+                ax.imshow(m, cmap = plt.cm.gist_rainbow , vmin = np.min(uniqu), vmax = np.max(uniqu))  # @UndefinedVariable
+                ax = c_plot.figure.add_subplot(326)
+                imbar = ax.imshow(indicator, cmap = plt.cm.hot)  # @UndefinedVariable
+                c_plot.figure.colorbar(imbar)
+                c_plot.canvas.draw()
+                pdf.savefig(c_plot.figure)
+
+            url = QUrl('file://' + outputFile)
+            QDesktopServices.openUrl(url)
 
     def someMethod2(self):
         self.iface.mapCanvas().setMapTool(self.spectralTool)

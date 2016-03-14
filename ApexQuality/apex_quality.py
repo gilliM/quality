@@ -208,6 +208,7 @@ class ApexQuality:
             qgis_core.QgsMapLayerRegistry.instance().addMapLayer(rlayer)
 
             r_save = np.array(indicator, dtype = np.float32)
+            r_save = np.reshape(r_save, (r_save.shape[0], r_save.shape[1], 1))
             self.WriteGeotiffNBand(r_save, self.path + '/temp/temp_indicator.tiff', gdal.GDT_Float32, geoTransform, dataset1.GetProjection())
             fileInfo = QFileInfo(self.path + '/temp/test.tiff')
             baseName = fileInfo.baseName()

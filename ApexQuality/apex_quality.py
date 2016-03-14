@@ -156,16 +156,10 @@ class ApexQuality:
             h, w, n_b = data.shape
             data = data.reshape(-1, n_b)
             subset = data[np.random.choice(data.shape[0], 100000)]
-            print 0
-            print 0
             pca = TruncatedSVD(n_components = dialog.nCompSvdSpinBox.value())
             pca.fit(subset)
-            print 1
-            print 1
             subset_pc = pca.transform(subset)
             data_pc = pca.transform(data)
-            print 2
-            print 2
             g.fit(subset_pc)
             m = g.predict(data_pc)
             indicator = np.max(g.predict_proba(data_pc), axis = 1)
@@ -173,9 +167,6 @@ class ApexQuality:
             m = np.reshape(m, (h, w))
             c = pca.inverse_transform(g.means_)
             c_covar = pca.inverse_transform(g.covars_)
-
-        print 3
-        print 4
 
         if dialog.pyplotCB.isChecked():
             c_plot = pyPlotWidget()

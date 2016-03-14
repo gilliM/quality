@@ -279,7 +279,6 @@ class ApexQuality:
                         table(ax, df, rowLabels = range((i * t_n) + 1, np.min((((i + 1) * t_n), n_b)) + 1), loc = 'upper right', colWidths = [1.0 / matrix.shape[1]] * matrix.shape[1])
                         c_plot.canvas.draw()
                     pdf.savefig(c_plot.figure)
-                    break
             url = QUrl('file://' + outputFile)
             QDesktopServices.openUrl(url)
 

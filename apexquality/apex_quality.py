@@ -41,7 +41,6 @@ from pandas import DataFrame
 from spectral_utils import getSubset
 from pyplot_widget import pyPlotWidget
 import customization
-from .build_spectral.lib import spectral  # @UnresolvedImport
 
 
 from kmeans_widget import KMeanWidget

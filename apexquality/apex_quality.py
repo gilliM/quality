@@ -170,27 +170,36 @@ class ApexQuality:
 
         if dialog.pyplotCB.isChecked():
             c_plot = pyPlotWidget()
-            ax = c_plot.figure.add_subplot(321)
+            ax = c_plot.figure.add_subplot(521)
             ax.hold(1)
             for i in range(c.shape[0]):
                 ax.plot(g.means_[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable)
-            ax = c_plot.figure.add_subplot(322)
+            ax = c_plot.figure.add_subplot(422)
             for i in range(c.shape[0]):
                 ax.plot(g.covars_[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
-            ax = c_plot.figure.add_subplot(323)
+            ax = c_plot.figure.add_subplot(423)
             for i in range(c.shape[0]):
                 ax.plot(c[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
             ax.set_ylim([0, 1])
-            ax = c_plot.figure.add_subplot(324)
+            ax = c_plot.figure.add_subplot(424)
             for i in range(c.shape[0]):
                 ax.plot((c_covar[i]), color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
             ax.hold(0)
             uniqu = np.unique(m)
-            ax = c_plot.figure.add_subplot(325)
+            ax = c_plot.figure.add_subplot(425)
             ax.imshow(m, cmap = plt.cm.gist_rainbow , vmin = np.min(uniqu), vmax = np.max(uniqu))  # @UndefinedVariable
-            ax = c_plot.figure.add_subplot(326)
+            ax = c_plot.figure.add_subplot(426)
             imbar = ax.imshow(indicator, cmap = plt.cm.hot)  # @UndefinedVariable
             c_plot.figure.colorbar(imbar)
+            ax = c_plot.figure.add_subplot(427)
+            for i in range(c.shape[0]):
+                ax.plot([0], [0], color = plt.cm.gist_rainbow(i / float(len(c) - 1)), label = i)  # @UndefinedVariable
+            ax.legend()
+            ax.axis('off')
+            ax = c_plot.figure.add_subplot(428)
+            for i in range(c.shape[0]):
+                ax.plot((c_covar[i] / c[i]), color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
+            ax.hold(0)
             c_plot.canvas.draw(); c_plot.show(); c_plot.exec_()
 
         if dialog.geotiffCB.isChecked():

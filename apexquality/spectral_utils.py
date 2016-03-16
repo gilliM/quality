@@ -31,12 +31,21 @@ def getSubset(filePath, extend = None):
         yMin = e.yMinimum()
         srcImage = gdal.Open(filePath)
         geoTrans = srcImage.GetGeoTransform()
-        minImage = list(world2Pixel(geoTrans, xMin, yMin))
-        maxImage = list(world2Pixel(geoTrans, xMax, yMax))
-        if minImage[0] < 0: minImage[0] = 0
-        if minImage[1] < 0: minImage[1] = 0
-        if maxImage[0] > srcImage.RasterXSize: maxImage[0] = srcImage.RasterXSize
-        if maxImage[1] > srcImage.RasterYSize: maxImage[1] = srcImage.RasterYSize
+        print geoTrans
+        if geoTrans[0] == 0 and geoTrans[3] == 0:
+            # apparently no projection
+            minImage = [int(xMin), -int(yMin)]
+            maxImage = [int(xMax), -int(yMax)]
+            print minImage
+            print maxImage
+        else:
+            # image has projection
+            minImage = list(world2Pixel(geoTrans, xMin, yMin))
+            maxImage = list(world2Pixel(geoTrans, xMax, yMax))
+            if minImage[0] < 0: minImage[0] = 0
+            if minImage[1] < 0: minImage[1] = 0
+            if maxImage[0] > srcImage.RasterXSize: maxImage[0] = srcImage.RasterXSize
+            if maxImage[1] > srcImage.RasterYSize: maxImage[1] = srcImage.RasterYSize
     else:
         minImage = extend[0:2]
         maxImage = extend[2:4]

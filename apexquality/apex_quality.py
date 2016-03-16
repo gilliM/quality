@@ -37,6 +37,7 @@ from osgeo import gdal
 from matplotlib.backends.backend_pdf import PdfPages
 from pandas.tools.plotting import table
 from pandas import DataFrame
+import spectral
 
 from spectral_utils import getSubset
 from pyplot_widget import pyPlotWidget
@@ -182,7 +183,7 @@ class ApexQuality:
             ax.set_ylim([0, 1])
             ax = c_plot.figure.add_subplot(324)
             for i in range(c.shape[0]):
-                ax.plot(c_covar[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
+                ax.plot((c_covar[i]), color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
             ax.hold(0)
             uniqu = np.unique(m)
             ax = c_plot.figure.add_subplot(325)
@@ -196,6 +197,7 @@ class ApexQuality:
             dataset1 = gdal.Open(filePath)
             geoTransform = list(dataset1.GetGeoTransform())
             geoTransform[0] += (xMin * geoTransform[1])
+            if geoTransform[5] > 0: geoTransform[5] *= -1
             geoTransform[3] += (yMax * geoTransform[5])
             r_save = np.array(m, dtype = np.uint8)
             r_save = np.reshape(r_save, (r_save.shape[0], r_save.shape[1], 1))

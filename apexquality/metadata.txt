@@ -10,7 +10,7 @@
 name=Apex Quality Assessment
 qgisMinimumVersion=2.12
 description=Automatic quality assessent of APEX data
-version=0.1
+version=0.3
 author=RSL
 email=gillian.milani@geo.uzh.ch
 

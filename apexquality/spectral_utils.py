@@ -55,7 +55,6 @@ def getSubset(filePath, extend = None):
         return None
     if '.bsq' in filePath:
         f = filePath.replace('.bsq', '.hdr')
-        return spectral.open_image(f).read_subregion([maxImage[1], minImage[1]], [minImage[0], maxImage[0]]), minImage[0], maxImage[1]
     else:
-        if srcImage.RasterCount == 1:
-            return srcImage.GetRasterBand(1).ReadAsArray()[maxImage[1] : minImage[1], minImage[0]: maxImage[0]]
+        f = filePath + '.hdr'
+    return spectral.open_image(f).read_subregion([maxImage[1], minImage[1]], [minImage[0], maxImage[0]]), minImage[0], maxImage[1]

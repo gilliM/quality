@@ -21,7 +21,7 @@
  ***************************************************************************/
 """
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication, QUrl, QFileInfo, Qt
-from PyQt4.QtGui import QAction, QIcon, QToolButton, QMenu, QDesktopServices, QKeySequence
+from PyQt4.QtGui import QAction, QIcon, QToolButton, QMenu, QDesktopServices, QKeySequence, QColor
 # Initialize Qt resources from file resources.py
 import resources  # @UnusedImport
 
@@ -129,13 +129,17 @@ class ApexQuality:
                 "No Raster selected", level = qgis_gui.QgsMessageBar.CRITICAL, duration = 5)
             return
 
+        n_class = dialog.classSpinBox.value()
+        cmap = plt.get_cmap('gist_rainbow')
+        colors = [cmap(i) for i in np.linspace(0, 1, n_class)]
+
         if dialog.restrictedRB.isChecked():
             data, xMin, yMax = getSubset(filePath)
             if data is None:
                 qgis_utils.iface.messageBar().pushMessage("Error",
                     "Problem of extend", level = qgis_gui.QgsMessageBar.CRITICAL, duration = 5)
                 return
-            g = mixture.GMM(n_components = dialog.classSpinBox.value())
+            g = mixture.GMM(n_components = n_class)
             h, w, n_b = data.shape
             data = data.reshape(-1, n_b)
             pca = TruncatedSVD(n_components = dialog.nCompSvdSpinBox.value())
@@ -152,7 +156,7 @@ class ApexQuality:
             data = img.load()
             xMin = 0; yMax = 0
 
-            g = mixture.GMM(n_components = dialog.classSpinBox.value())
+            g = mixture.GMM(n_components = n_class)
             h, w, n_b = data.shape
             data = data.reshape(-1, n_b)
             subset = data[np.random.choice(data.shape[0], 100000)]
@@ -169,38 +173,73 @@ class ApexQuality:
             c_covar = pca.inverse_transform(g.covars_)
 
         if dialog.pyplotCB.isChecked():
-            c_plot = pyPlotWidget()
-            ax = c_plot.figure.add_subplot(521)
+            self.c_plot = pyPlotWidget()
+            ax = self.c_plot.figure.add_subplot(431)
             ax.hold(1)
             for i in range(c.shape[0]):
-                ax.plot(g.means_[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable)
-            ax = c_plot.figure.add_subplot(422)
+                ax.plot(g.means_[i], color = colors[i])
+            ax = self.c_plot.figure.add_subplot(432)
             for i in range(c.shape[0]):
-                ax.plot(g.covars_[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
-            ax = c_plot.figure.add_subplot(423)
+                ax.plot(g.covars_[i], color = colors[i])
+            ax = self.c_plot.figure.add_subplot(434)
             for i in range(c.shape[0]):
-                ax.plot(c[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
+                ax.plot(c[i], color = colors[i])
             ax.set_ylim([0, 1])
-            ax = c_plot.figure.add_subplot(424)
+            ax = self.c_plot.figure.add_subplot(435)
             for i in range(c.shape[0]):
-                ax.plot((c_covar[i]), color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
+                ax.plot((c_covar[i]), color = colors[i])
             ax.hold(0)
             uniqu = np.unique(m)
-            ax = c_plot.figure.add_subplot(425)
-            ax.imshow(m, cmap = plt.cm.gist_rainbow , vmin = np.min(uniqu), vmax = np.max(uniqu))  # @UndefinedVariable
-            ax = c_plot.figure.add_subplot(426)
+            ax = self.c_plot.figure.add_subplot(437)
+            ax.imshow(m, cmap = cmap , vmin = np.min(uniqu), vmax = np.max(uniqu))
+            ax = self.c_plot.figure.add_subplot(438)
             imbar = ax.imshow(indicator, cmap = plt.cm.hot)  # @UndefinedVariable
-            c_plot.figure.colorbar(imbar)
-            ax = c_plot.figure.add_subplot(427)
+            self.c_plot.figure.colorbar(imbar)
+            ax = self.c_plot.figure.add_subplot(4, 3, 10)
             for i in range(c.shape[0]):
-                ax.plot([0], [0], color = plt.cm.gist_rainbow(i / float(len(c) - 1)), label = i)  # @UndefinedVariable
+                ax.plot([0], [0], color = colors[i], label = i)
             ax.legend()
             ax.axis('off')
-            ax = c_plot.figure.add_subplot(428)
+            ax = self.c_plot.figure.add_subplot(4, 3, 11)
             for i in range(c.shape[0]):
-                ax.plot((c_covar[i] / c[i]), color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
+                ax.plot((c_covar[i] / c[i]), color = colors[i])
             ax.hold(0)
-            c_plot.canvas.draw(); c_plot.show(); c_plot.exec_()
+            self.c_plot.canvas.draw();
+            self.c_plot.show();
+            self.c_plot.raise_()
+
+            class_list = []
+            for class_i in range(np.min(uniqu), np.max(uniqu) + 1):
+                class_list.append(np.reshape(m == class_i, (-1)))
+
+
+            colors = [cmap(i) for i in np.linspace(0, 1, np.max(uniqu) + 1 - np.min(uniqu))]
+            ax = self.c_plot.figure.add_subplot(1, 3, 3)
+            for j, class_i in enumerate(range(n_class)):
+                # ax = self.c_plot.figure.add_subplot(np.max(uniqu) + 1 - np.min(uniqu), 3, 3 * (j + 1))
+                bool_i = class_list[j]
+                data_class = data[bool_i, :]
+                # ax.axis('off')
+                results, headers = customization.compute_stats_per_class(data_class)
+                color = colors[j]
+                ax.plot(j + results[1], '-', color = color)
+                ax.plot(j + results[1] + results[3], '-', color = color)
+                ax.plot(j + results[1] - results[3], '-', color = color)
+                ax.plot(j + results[0], '-.', color = color)
+                ax.plot(j + results[2], '--', color = color)
+                ax.set_ylim([0, j + 1])
+
+                ax.set_axis_off()
+                ax.set_frame_on(True)
+                ax.set_axis_bgcolor('w')
+            # ax.plot([0], [0], 'k-', label = 'mean')
+            # ax.plot([0], [0], 'k--', label = 'max')
+            # ax.plot([0], [0], 'k-.', label = 'min')
+            # ax.legend()
+            self.c_plot.figure.subplots_adjust(left = 0.02, right = 0.98, top = 0.98, bottom = 0.1, wspace = 0.05, hspace = 0.05)
+            self.c_plot.canvas.draw();
+            self.c_plot.showMaximized();
+            self.c_plot.exec_()
 
         if dialog.geotiffCB.isChecked():
             dataset1 = gdal.Open(filePath)
@@ -215,7 +254,20 @@ class ApexQuality:
             fileInfo = QFileInfo(self.path + '/temp/test.tiff')
             baseName = fileInfo.baseName()
             rlayer = qgis_core.QgsRasterLayer(self.path + '/temp/temp.tiff', baseName)
+
+
+
+            fcn = qgis_core.QgsColorRampShader()
+            fcn.setColorRampType(qgis_core.QgsColorRampShader.EXACT)
+            lst = [ qgis_core.QgsColorRampShader.ColorRampItem(j, QColor(colors[j][0] * 255, colors[j][1] * 255, colors[j][2] * 255)) for j in range(n_class) ]
+            fcn.setColorRampItemList(lst)
+            shader = qgis_core.QgsRasterShader()
+            shader.setRasterShaderFunction(fcn)
+
+            renderer = qgis_core.QgsSingleBandPseudoColorRenderer(rlayer.dataProvider(), 1, shader)
+            rlayer.setRenderer(renderer)
             qgis_core.QgsMapLayerRegistry.instance().addMapLayer(rlayer)
+
 
             r_save = np.array(indicator, dtype = np.float32)
             r_save = np.reshape(r_save, (r_save.shape[0], r_save.shape[1], 1))
@@ -225,6 +277,8 @@ class ApexQuality:
             rlayer = qgis_core.QgsRasterLayer(self.path + '/temp/temp_indicator.tiff', baseName)
             qgis_core.QgsMapLayerRegistry.instance().addMapLayer(rlayer)
 
+
+
         if dialog.pdfCB.isChecked():
             outputFile = self.path + '/temp/test.pdf'
             with PdfPages(outputFile) as pdf:
@@ -233,20 +287,20 @@ class ApexQuality:
                 ax.set_title('SVD Classes')
                 ax.hold(1)
                 for i in range(c.shape[0]):
-                    ax.plot(g.means_[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable)
+                    ax.plot(g.means_[i], color = colors[i])  # @UndefinedVariable)
                 ax = c_plot.figure.add_subplot(222)
                 ax.set_title('SVD variances')
                 for i in range(c.shape[0]):
-                    ax.plot(g.covars_[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
+                    ax.plot(g.covars_[i], color = colors[i])  # @UndefinedVariable
                 ax = c_plot.figure.add_subplot(223)
                 ax.set_title('Spectrum Classes')
                 for i in range(c.shape[0]):
-                    ax.plot(c[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
+                    ax.plot(c[i], color = colors[i])  # @UndefinedVariable
                 ax.set_ylim([0, 1])
                 ax = c_plot.figure.add_subplot(224)
                 ax.set_title('Spectrum Variances')
                 for i in range(c.shape[0]):
-                    ax.plot(c_covar[i], color = plt.cm.gist_rainbow(i / float(len(c) - 1)))  # @UndefinedVariable
+                    ax.plot(c_covar[i], color = colors[i])  # @UndefinedVariable
                 ax.hold(0)
                 uniqu = np.unique(m)
                 pdf.savefig(c_plot.figure)
@@ -255,14 +309,22 @@ class ApexQuality:
                 ax = c_plot.figure.add_subplot(221)
                 ax.set_title('Classification')
                 ax.imshow(m, cmap = plt.cm.gist_rainbow , vmin = np.min(uniqu), vmax = np.max(uniqu))  # @UndefinedVariable
+
                 ax = c_plot.figure.add_subplot(222)
                 ax.set_title('Minimal distance to class')
                 imbar = ax.imshow(indicator, cmap = plt.cm.hot)  # @UndefinedVariable
                 c_plot.figure.colorbar(imbar)
+
                 ax = c_plot.figure.add_subplot(223)
+                ax.set_title('Classification')
+                original = np.reshape(data, (h, w, n_b))
+                img = np.transpose(np.array((self.getBand(original, 39), self.getBand(original, 17), self.getBand(original, 6))), (1, 2, 0))
+                ax.imshow(img, interpolation = "nearest")
+
+                ax = c_plot.figure.add_subplot(224)
                 for i in range(c.shape[0]):
-                    ax.plot([0], [0], color = plt.cm.gist_rainbow(i / float(len(c) - 1)), label = i)  # @UndefinedVariable
-                ax.legend()
+                    ax.plot([0], [0], color = colors[i], label = i)  # @UndefinedVariable
+                ax.legend(prop = {'size':int(96.0 / n_class)})
                 ax.axis('off')
                 c_plot.canvas.draw()
                 pdf.savefig(c_plot.figure)
@@ -271,6 +333,34 @@ class ApexQuality:
                 for class_i in range(np.min(uniqu), np.max(uniqu) + 1):
                     class_list.append(np.reshape(m == class_i, (-1)))
 
+                nn = 5
+                n_pages = int(np.ceil(n_class / float(nn)))
+                r = range(np.min(uniqu), np.max(uniqu) + 1)
+
+                for p in range(n_pages):
+                    c_plot = pyPlotWidget()
+                    ax = c_plot.figure.add_subplot(1, 1, 1)
+                    for j, class_i in enumerate(r[(p * nn): np.min([((p + 1) * nn), len(r)])]):
+                        # ax = self.c_plot.figure.add_subplot(np.max(uniqu) + 1 - np.min(uniqu), 3, 3 * (j + 1))
+                        bool_i = class_list[j + p * nn]
+                        data_class = data[bool_i, :]
+                        # ax.axis('off')
+                        results, headers = customization.compute_stats_per_class(data_class)
+                        color = colors[j + p * nn]
+                        ax.plot(nn - 1 - j + results[1], '-', color = color)
+                        ax.plot(nn - 1 - j + results[1] + results[3], ':', color = color)
+                        ax.plot(nn - 1 - j + results[1] - results[3], ':', color = color)
+                        ax.plot(nn - 1 - j + results[0], '-.', color = color)
+                        ax.plot(nn - 1 - j + results[2], '--', color = color)
+                        ax.set_ylim([0, nn])
+
+                        ax.set_axis_off()
+                        ax.set_frame_on(True)
+                        ax.set_axis_bgcolor('w')
+                    pdf.savefig(c_plot.figure)
+
+                """
+                ### The following part was used to write tables to the pdf
                 nn = 12
                 t_n = int(np.ceil(n_b / float(nn)))
                 for i in range(nn):
@@ -289,8 +379,20 @@ class ApexQuality:
                         table(ax, df, rowLabels = range((i * t_n) + 1, np.min((((i + 1) * t_n), n_b)) + 1), loc = 'upper right', colWidths = [1.0 / matrix.shape[1]] * matrix.shape[1])
                         c_plot.canvas.draw()
                     pdf.savefig(c_plot.figure)
+                """
             url = QUrl('file://' + outputFile)
             QDesktopServices.openUrl(url)
+
+    def getBand(self, array, i):
+        val = array[:, :, i]
+        max = np.percentile(val, 98.0)  #  / 1.5
+        min = np.percentile(val, 2.0)  # * 1.5
+        val = (val - min) / (max - min)
+        val[val < 0] = 0
+        val[val > 1] = 1
+        val = np.array(np.round(val * 255), dtype = np.uint8)
+        return val
+
 
     def someMethod2(self):
         self.iface.mapCanvas().setMapTool(self.spectralTool)
